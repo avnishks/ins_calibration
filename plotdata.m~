@@ -1,0 +1,16 @@
+% close all;
+% plot(t, simout.signals.values(:,1:2)/(3.28) ,'DisplayName','simout.signals.values');figure(gcf)
+%function plotdata(t,dot_del_v)
+plot(t, dot_del_v.signals.values(:,2) ,'DisplayName','simout.signals.values');figure(gcf)
+grid on;
+xlabel('Time(s)');
+ylabel('Rate-of-change of error in velocity(m/s^2)');
+
+XData=get(get(gca,'children'),'XData');
+YData=get(get(gca,'children'),'YData');
+% Get y value for x=3.33 - NOT a data point.
+y0 = interp1(XData,YData,4.99,'spline');
+y1 = interp1(XData,YData,25.01,'spline');
+y2 = interp1(XData,YData,29.99,'spline');
+y3 = interp1(XData,YData,50.01,'spline');
+1_b_1=y1-y0;

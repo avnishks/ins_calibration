@@ -1,0 +1,153 @@
+
+
+function [sys,x0,str,ts]=DCMmatupdt(t,x,u,flag,dt,c11,c12,c13,c21,c22,c23,c31,c32,c33)
+%DCM matrix update.
+
+switch flag
+
+  %%%%%%%%%%%%%%%%%%
+  % Initialization %
+  %%%%%%%%%%%%%%%%%%
+  case 0         
+    [sys,x0,str,ts] = mdlInitializeSizes(t,x,u,flag,dt,c11,c12,c13,c21,c22,c23,c31,c32,c33);
+
+  %%%%%%%%%%%%%%%%%%%%%%%%
+  % Others  &  Terminate %
+  %%%%%%%%%%%%%%%%%%%%%%%%
+  case {1,9}
+    sys = []; % do nothing
+
+  %%%%%%%%%%%%%%%
+  % Update      %
+  %%%%%%%%%%%%%%%
+  case 2
+    sys = mdlUpdate(t,x,u,dt);
+
+  %%%%%%%%%%
+  % Output %
+  %%%%%%%%%%  
+  case 3
+    sys = mdlOutputs(t,x,u); 
+  %%%%%%%%%%%%%%%
+  % Update      %
+  %%%%%%%%%%%%%%%
+  
+  case 4
+    sys = mdlGetTimeofNextVarHit(t,x,u,dt);
+
+    
+  otherwise
+    error(['unhandled flag = ',num2str(flag)]);
+    
+end
+
+% end DCMupdt
+%
+%=============================================================================
+% mdlInitializeSizes
+% Return the sizes, initial conditions, and sample times for the S-function.
+%=============================================================================
+%
+function [sys,x0,str,ts] = mdlInitializeSizes(t,x,u,flag,dt,c11,c12,c13,c21,c22,c23,c31,c32,c33)
+
+   sizes = simsizes;
+   sizes.NumContStates  = 0;
+   sizes.NumDiscStates  = 9;
+   sizes.NumOutputs     = 9;
+   sizes.NumInputs      = 3;
+   sizes.DirFeedthrough = 0;
+   sizes.NumSampleTimes = 1;
+
+   sys = simsizes(sizes);
+   str = [];
+   x0(1) = c11;
+   x0(2) = c12;
+   x0(3) = c13;
+   x0(4) = c21;
+   x0(5) = c22;
+   x0(6) = c23;
+   x0(7) = c31;
+   x0(8) = c32;
+   x0(9) = c33;
+   ts  = [dt 0];   % sample time: [period, offset]
+
+% end mdlInitializeSizes
+%
+%=============================================================================
+% mdlUpdate
+% Compute updates for discrete states.
+%=============================================================================
+%
+function sys = mdlUpdate(t,x,u,dt)
+%
+% DCM matrix mapping to MATLAB states
+%  c11, c12, c13, c21, c22, c23, c31, c32, c33 = x(1),x(2),x(3),x(4),x(5),x(6),x(7),x(8),x(9)
+% angle rates mapping to MATLAB inputs
+%  omega1, omega2, omega3 =  u(1),    u(2),  u(3)
+
+      ux1 = u(3)*x(4) - u(2)*x(7);
+      ux2 = u(3)*x(5) - u(2)*x(8);
+      ux3 = u(3)*x(6) - u(2)*x(9);
+      ux4 = u(1)*x(7) - u(3)*x(1);
+      ux5 = u(1)*x(8) - u(3)*x(2);
+      ux6 = u(1)*x(9) - u(3)*x(3);
+      ux7 = u(2)*x(1) - u(1)*x(4);
+      ux8 = u(2)*x(2) - u(1)*x(5);
+      ux9 = u(2)*x(3) - u(1)*x(6);
+%   
+      x(1) = x(1) + ux1*dt;
+      x(2) = x(2) + ux2*dt;
+      x(3) = x(3) + ux3*dt;
+      x(4) = x(4) + ux4*dt;
+      x(5) = x(5) + ux5*dt;
+      x(6) = x(6) + ux6*dt;
+      x(7) = x(7) + ux7*dt;
+      x(8) = x(8) + ux8*dt;
+      x(9) = x(9) + ux9*dt;  
+%   
+      f1 = 0.5*(x(1)*x(2) + x(4)*x(5) + x(7)*x(8));
+      f2 = 0.5*(1.0-x(1)^2-x(4)^2-x(7)^2);
+      f3 = 0.5*(1.0-x(2)^2-x(5)^2-x(8)^2);
+      ux1 = x(1) - f1*x(2) + 0.5*f2*x(1);
+      ux4 = x(4) - f1*x(5) + 0.5*f2*x(4);
+      ux7 = x(7) - f1*x(8) + 0.5*f2*x(7);
+      ux2 = x(2) - f1*x(1) + 0.5*f3*x(2);
+      ux5 = x(5) - f1*x(4) + 0.5*f3*x(5);
+      ux8 = x(8) - f1*x(7) + 0.5*f3*x(8);
+      ux3 = x(4)*x(8) - x(7)*x(5);
+      ux6 = x(7)*x(2) - x(1)*x(8);
+      ux9 = x(1)*x(5) - x(4)*x(2);
+%   
+      x(1) = ux1;
+      x(2) = ux2;
+      x(3) = ux3;
+      x(4) = ux4;
+      x(5) = ux5;
+      x(6) = ux6;
+      x(7) = ux7;
+      x(8) = ux8;
+      x(9) = ux9;
+%  
+   sys = x;
+
+% end mdlUpdate
+%
+%=============================================================================
+% mdlOutputs
+% Return the output vector for the S-function
+%=============================================================================
+%
+function sys = mdlOutputs(t,x,u)
+
+   sys = x;
+
+% end mdlOutputs
+
+%=============================================================================
+% mdlGetTimeofNextVarHit
+%=============================================================================
+function sys = mdlGetTimeofNextVarHit(t,x,u,dt)
+
+   sys = t + dt;
+
+% end mdlGetTimeofNextVarHit
